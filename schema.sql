@@ -1,0 +1,14 @@
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL
+);
+
+CREATE TABLE cover_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher TEXT NOT NULL,
+    class_name TEXT NOT NULL,
+    room TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);

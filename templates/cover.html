@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="cover-form">
+    <h2>Apply Cover</h2>
+    <p>Use this page to apply cover to classes.</p>
+    <p>You need to fill in the details below to submit a cover request.</p>
+    <form method="POST">
+        <label for="teacher">Teacher Name:</label>
+        <input type="text" id="teacher" name="teacher" required>
+        <label for="class_name">Class Name:</label>
+        <input type="text" id="class_name" name="class_name" required>
+        <label for="room">Room Number:</label>
+        <input type="text" id="room" name="room" required>
+        <label for="subject">Subject:</label>
+        <select id="subject" name="subject" required>
+            <option value="">Select a subject</option>
+            <option value="Math">Math</option>
+            <option value="Science">Science</option>
+            <option value="History">History</option>
+            <option value="English">English</option>
+        </select>
+        <button type="submit">Submit Cover</button>
+    </form>
+    {% if message %}
+        <h3>{{message}}</h3>
+    {% endif %}
+</div>
+{% endblock %}
