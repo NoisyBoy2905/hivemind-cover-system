@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="section-page">
+    <div class="page-title">
+        <div>
+            <h1>Reports</h1>
+            <p class="muted">All cover requests and absences, not counting cancelled cover</p>
+        </div>
+    </div>
+
+    <section class="stats" aria-label="Report summary">
+        <div class="stat-card">
+            <span class="stat-number">{{ total }}</span>
+            <span class="stat-label">Lessons needing cover</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ covered }}</span>
+            <span class="stat-label">Lessons covered</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ cover_rate }}%</span>
+            <span class="stat-label">Cover rate</span>
+        </div>
+    </section>
+
+    <section class="table-section" aria-labelledby="cost-heading">
+        <h2 id="cost-heading">Cover hours and cost</h2>
+        <p class="muted small">Each lesson is {{ lesson_hours }} hour. Cost is an estimate at a demo rate of £{{ '%.2f'|format(rate) }} per hour, not real pay data.</p>
+        <div class="table-card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col"></th>
+                        <th scope="col">Lessons covered</th>
+                        <th scope="col">Hours covered</th>
+                        <th scope="col">Estimated cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th scope="row">This month</th>
+                        <td>{{ cover_totals.lessons_month }}</td>
+                        <td>{{ cover_totals.hours_month }}</td>
+                        <td>£{{ '%.2f'|format(cover_totals.cost_month) }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">All time</th>
+                        <td>{{ cover_totals.lessons }}</td>
+                        <td>{{ cover_totals.hours }}</td>
+                        <td>£{{ '%.2f'|format(cover_totals.cost) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="report-grid">
+        <section class="table-section" aria-labelledby="subject-heading">
+            <h2 id="subject-heading">Cover by subject</h2>
+            <div class="table-card">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Subject</th>
+                            <th scope="col">Total</th>
+                            <th scope="col">Covered</th>
+                            <th scope="col">Pending</th>
+                            <th scope="col">Declined</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in by_subject %}
+                            <tr>
+                                <td>{{ row['subject'] }}</td>
+                                <td>{{ row['total'] }}</td>
+                                <td>{{ row['covered'] }}</td>
+                                <td>{{ row['pending'] }}</td>
+                                <td>{{ row['declined'] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="table-section" aria-labelledby="reason-heading">
+            <h2 id="reason-heading">Absence days by reason</h2>
+            <div class="table-card bars">
+                {% for row in by_reason %}
+                    <div class="bar-row">
+                        <span class="bar-label">{{ row['reason'] }}</span>
+                        <span class="bar-track"><span class="bar" style="width: {{ (row['days'] / max_days * 100)|round|int }}%"></span></span>
+                        <span class="bar-value">{{ row['days']|int }} day{{ '' if row['days'] == 1 else 's' }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <section class="table-section" aria-labelledby="teacher-heading">
+        <h2 id="teacher-heading">Cover taken by each teacher</h2>
+        <p class="muted small">Helps share cover fairly between staff.</p>
+        <div class="table-card bars">
+            {% for row in by_teacher %}
+                <div class="bar-row">
+                    <span class="bar-label">{{ row['display_name'] }} <span class="muted small">{{ row['department'] }}</span></span>
+                    <span class="bar-track"><span class="bar" style="width: {{ (row['lessons'] / max_lessons * 100)|round|int }}%"></span></span>
+                    <span class="bar-value">{{ row['lessons'] }} · £{{ '%.2f'|format(row['lessons'] * lesson_hours * rate) }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

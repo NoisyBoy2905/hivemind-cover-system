@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="cover-form">
+    <h2>{{ 'Edit account' if user else 'Add account' }}</h2>
+    <p>{{ 'Change ' ~ user['display_name'] ~ "'s details." if user else 'Create a login for a member of staff. Give them their username and starting password.' }}</p>
+    {% if error %}
+        <p class="form-error" role="alert">{{ error }}</p>
+    {% endif %}
+    <form method="POST">
+        <label for="display_name">Name (as shown in the app):</label>
+        <input type="text" id="display_name" name="display_name" placeholder="e.g. Ms R. Patel"
+               value="{{ form.get('display_name', user['display_name'] if user else '') }}" required>
+
+        <label for="name">Username (letters and numbers only):</label>
+        <input type="text" id="name" name="name" placeholder="e.g. rpatel" autocomplete="off"
+               pattern="[A-Za-z0-9]+" value="{{ form.get('name', user['name'] if user else '') }}" required>
+
+        <label for="role">Role:</label>
+        {% set chosen_role = form.get('role', user['role'] if user else 'teacher') %}
+        <select id="role" name="role" required>
+            {% for value, label in roles.items() %}
+                <option value="{{ value }}" {% if chosen_role == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="department">Department:</label>
+        <input type="text" id="department" name="department" list="department-list" placeholder="e.g. Science"
+               value="{{ form.get('department', user['department'] if user else '') }}" required>
+        <datalist id="department-list">
+            {% for name in departments %}
+                <option value="{{ name }}">
+            {% endfor %}
+        </datalist>
+
+        <label for="staff_code">Timetable staff code (3 letters, leave blank if none):</label>
+        <input type="text" id="staff_code" name="staff_code" list="staff-code-list" placeholder="e.g. XYZ"
+               maxlength="3" pattern="[A-Za-z]{3}" autocomplete="off" class="staff-code-input"
+               value="{{ form.get('staff_code', (user['staff_code'] or '') if user else '') }}">
+        <datalist id="staff-code-list">
+            {% for code in staff_codes %}
+                <option value="{{ code }}">
+            {% endfor %}
+        </datalist>
+
+        {% if not user %}
+            <label for="password">Starting password (at least 8 characters):</label>
+            <input type="text" id="password" name="password" autocomplete="off" minlength="8" required>
+        {% endif %}
+
+        <button type="submit">{{ 'Save changes' if user else 'Create account' }}</button>
+        <a class="form-cancel" href="{{ url_for('admin') }}">Cancel</a>
+    </form>
+
+    {% if user %}
+        <section class="account-actions" aria-labelledby="actions-heading">
+            <h3 id="actions-heading">Account</h3>
+
+            <div class="account-action">
+                <div>
+                    <p><strong>Reset password</strong></p>
+                    <p class="muted small">Makes a temporary password to give them. They'll choose a new one when they sign in.</p>
+                </div>
+                <form method="POST" action="{{ url_for('admin_reset_password', user_id=user['id']) }}"
+                      onsubmit='return confirm({{ ("Reset the password for " ~ user["display_name"] ~ "?")|tojson }});'>
+                    <button type="submit" class="button-small button-light">Reset password</button>
+                </form>
+            </div>
+
+            {% if user['id'] != g.user['id'] %}
+                <div class="account-action">
+                    <div>
+                        {% if user['active'] %}
+                            <p><strong>Disable account</strong></p>
+                            <p class="muted small">They won't be able to sign in. Their cover history is kept.</p>
+                        {% else %}
+                            <p><strong>Enable account</strong></p>
+                            <p class="muted small">This account is disabled. Enable it to let them sign in again.</p>
+                        {% endif %}
+                    </div>
+                    <form method="POST" action="{{ url_for('admin_toggle_active', user_id=user['id']) }}"
+                          onsubmit='return confirm({{ ((("Disable " if user["active"] else "Enable ") ~ user["display_name"] ~ "'s account?"))|tojson }});'>
+                        <button type="submit" class="button-small {{ 'button-danger' if user['active'] else '' }}">
+                            {{ 'Disable' if user['active'] else 'Enable' }}
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="section-page">
+    <div class="page-title">
+        <div>
+            {% if g.user['role'] == 'teacher' %}
+                <h1>Absences</h1>
+                <p class="muted">Your absences and whether they've been approved</p>
+            {% else %}
+                <h1>Absences</h1>
+                <p class="muted">{{ current|length }} absent today · {{ upcoming|length }} coming up</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% for title, rows, empty in [
+        ('Absent today', current, 'Nobody is absent today.'),
+        ('Coming up', upcoming, 'No absences booked.'),
+        ('Past absences', past, 'No past absences.'),
+    ] %}
+        <section class="table-section" aria-label="{{ title }}">
+            <h2>{{ title }}</h2>
+            {% if rows %}
+                <div class="table-card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Staff member</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Reason</th>
+                                <th scope="col">From</th>
+                                <th scope="col">To</th>
+                                <th scope="col">Lessons to cover</th>
+                                <th scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                                <tr>
+                                    <td>{{ row['display_name'] }}</td>
+                                    <td>{{ row['department'] }}</td>
+                                    <td><span class="tag tag-reason">{{ row['reason'] }}</span></td>
+                                    <td>{{ row['start_date']|day }}</td>
+                                    <td>{{ row['end_date']|day }}</td>
+                                    <td>{{ row['lessons'] }}</td>
+                                    <td><span class="badge badge-{{ {'Approved': 'covered', 'Pending': 'pending', 'Declined': 'declined'}[row['status']] }}">{{ row['status'] }}</span></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="empty-card">{{ empty }}</p>
+            {% endif %}
+        </section>
+    {% endfor %}
+</div>
+{% endblock %}

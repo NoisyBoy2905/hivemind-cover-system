@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+{% set role_names = {'teacher': 'Teacher', 'cover_supervisor': 'Cover supervisor', 'slt': 'SLT', 'admin': 'Admin'} %}
+{% set active_users = users|selectattr('active')|list %}
+<div class="section-page">
+    <div class="page-title">
+        <div>
+            <h1>Admin</h1>
+            <p class="muted">Manage staff accounts: add people, change their role and reset passwords</p>
+        </div>
+        <div class="day-nav">
+            <a class="button-small button-light" href="{{ url_for('admin_timetable') }}">Upload timetable</a>
+            <a class="button-small" href="{{ url_for('admin_new') }}">+ Add account</a>
+        </div>
+    </div>
+
+    <section class="stats" aria-label="Accounts summary">
+        <div class="stat-card">
+            <span class="stat-number">{{ users|length }}</span>
+            <span class="stat-label">Accounts</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ active_users|length }}</span>
+            <span class="stat-label">Active</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ users|length - active_users|length }}</span>
+            <span class="stat-label">Disabled</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ users|rejectattr('staff_code')|list|length }}</span>
+            <span class="stat-label">Not linked to a timetable</span>
+        </div>
+    </section>
+
+    <section class="table-section" aria-labelledby="accounts-heading">
+        <h2 id="accounts-heading" class="visually-hidden">Accounts</h2>
+        <div class="table-card">
+            <table class="data-table admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Username</th>
+                        <th scope="col">Role</th>
+                        <th scope="col">Department</th>
+                        <th scope="col">Staff code</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Last signed in</th>
+                        <th scope="col">Personal link</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                        <tr class="{{ '' if user['active'] else 'is-disabled' }}">
+                            <td>
+                                <span class="name-cell">
+                                    <span class="avatar small-avatar" aria-hidden="true">{{ user['display_name']|initials }}</span>
+                                    {{ user['display_name'] }}
+                                    {% if user['id'] == g.user['id'] %}<span class="muted small">(you)</span>{% endif %}
+                                </span>
+                            </td>
+                            <td><code class="username">{{ user['name'] }}</code></td>
+                            <td><span class="role-badge role-{{ user['role'] }}">{{ role_names[user['role']] }}</span></td>
+                            <td>{{ user['department'] }}</td>
+                            <td>{{ user['staff_code'] or '—' }}</td>
+                            <td>
+                                {% if user['active'] %}
+                                    <span class="badge badge-covered">Active</span>
+                                {% else %}
+                                    <span class="badge badge-declined">Disabled</span>
+                                {% endif %}
+                            </td>
+                            <td class="muted small">{{ user['last_seen']|time_ago if user['last_seen'] else 'Never' }}</td>
+                            <td>
+                                {% set link = url_for('personal_link', name=user['name'], _external=True) %}
+                                <button type="button" class="link-button copy-link" data-link="{{ link }}" title="{{ link }}">Copy link</button>
+                            </td>
+                            <td><a class="table-link" href="{{ url_for('admin_edit', user_id=user['id']) }}">Edit</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

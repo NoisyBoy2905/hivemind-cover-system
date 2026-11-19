@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="section-page cover-desk">
+    <div class="page-title">
+        <div>
+            <h1>Cover desk</h1>
+            <p class="muted">
+                {{ shown.strftime('%A') }} {{ shown.day }} {{ shown.strftime('%B %Y') }}
+                {% if is_today %}<span class="badge badge-covered">Today</span>{% endif %}
+            </p>
+        </div>
+        <div class="day-nav">
+            <a class="button-small button-light" href="{{ url_for('cover_desk', date=previous_day) }}" aria-label="Previous day">← Previous</a>
+            <form method="GET" class="day-picker">
+                <label for="date" class="visually-hidden">Choose a date</label>
+                <input type="date" id="date" name="date" value="{{ shown_iso }}" onchange="this.form.submit()">
+                <noscript><button type="submit">Go</button></noscript>
+            </form>
+            <a class="button-small button-light" href="{{ url_for('cover_desk', date=next_day) }}" aria-label="Next day">Next →</a>
+            {% if not is_today %}
+                <a class="button-small" href="{{ url_for('cover_desk') }}">Today</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <section class="stats" aria-label="Cover on this day">
+        <div class="stat-card">
+            <span class="stat-number">{{ pending|length }}</span>
+            <span class="stat-label">Lessons needing cover</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ covered|length }}</span>
+            <span class="stat-label">Lessons covered</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ declined|length }}</span>
+            <span class="stat-label">No staff free</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ absent_staff|length }}</span>
+            <span class="stat-label">Staff absent</span>
+        </div>
+    </section>
+
+    {% if is_weekend %}
+        <p class="empty-card">This is a weekend, so there's no timetable. Suggestions can't check who's free.</p>
+    {% endif %}
+
+    <div class="columns">
+        <div>
+            <section aria-labelledby="needs-heading">
+                <div class="section-title">
+                    <h2 id="needs-heading">Needs cover</h2>
+                    <span class="muted">{{ pending|length }} lesson{{ '' if pending|length == 1 else 's' }}</span>
+                </div>
+
+                {% for lesson in pending %}
+                    {% set options = suggestions[lesson['id']] %}
+                    <article class="lesson-card">
+                        <div class="lesson">
+                            <div class="period">
+                                <span class="period-number">P{{ lesson['period'] }}</span>
+                                <span class="period-time">{{ periods[lesson['period']][0] }} – {{ periods[lesson['period']][1] }}</span>
+                            </div>
+                            <div>
+                                <h3>{{ lesson['class_name'] }} · {{ lesson['subject'] }}</h3>
+                                <p class="muted">Room {{ lesson['room'] }} · for {{ lesson['absent_teacher'] }}</p>
+                            </div>
+                        </div>
+
+                        {% if options %}
+                            <div class="suggestions">
+                                <h4>Suggested</h4>
+                                {% for person in options[:3] %}
+                                    <form method="POST" action="{{ url_for('assign_cover', cover_id=lesson['id']) }}" class="suggestion">
+                                        <input type="hidden" name="user_id" value="{{ person.id }}">
+                                        <div>
+                                            <p class="suggestion-name">{{ person.display_name }} <span class="muted small">{{ person.department }}</span></p>
+                                            <p class="muted small">{{ person.reasons|join(' · ') }}</p>
+                                        </div>
+                                        <button type="submit" class="button-small">Assign</button>
+                                    </form>
+                                {% endfor %}
+
+                                {% if options|length > 3 %}
+                                    <form method="POST" action="{{ url_for('assign_cover', cover_id=lesson['id']) }}" class="someone-else">
+                                        <label for="other-{{ lesson['id'] }}">Someone else</label>
+                                        <select id="other-{{ lesson['id'] }}" name="user_id">
+                                            {% for person in options[3:] %}
+                                                <option value="{{ person.id }}">{{ person.display_name }} ({{ person.department }}, {{ person.hours_covered }}h of cover)</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="button-small button-light">Assign</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <p class="muted">Nobody is free this period.</p>
+                        {% endif %}
+
+                        <form method="POST" action="{{ url_for('decline_cover', cover_id=lesson['id']) }}" class="decline-form">
+                            <button type="submit" class="link-button">Mark as no staff free</button>
+                        </form>
+                    </article>
+                {% else %}
+                    <p class="empty-card">Every lesson on this day has cover. 🎉</p>
+                {% endfor %}
+            </section>
+
+            {% if covered or declined %}
+                <section class="table-section" aria-labelledby="arranged-heading">
+                    <h2 id="arranged-heading">Already arranged</h2>
+                    <div class="table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Period</th>
+                                    <th scope="col">Class</th>
+                                    <th scope="col">Room</th>
+                                    <th scope="col">Absent teacher</th>
+                                    <th scope="col">Covered by</th>
+                                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in covered + declined %}
+                                    <tr>
+                                        <td>P{{ row['period'] }}</td>
+                                        <td>{{ row['class_name'] }}</td>
+                                        <td>{{ row['room'] }}</td>
+                                        <td>{{ row['absent_teacher'] }}</td>
+                                        <td>
+                                            {% if row['status'] == 'Covered' %}
+                                                {{ row['cover_teacher'] }}
+                                            {% else %}
+                                                <span class="badge badge-declined">No staff free</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <form method="POST" action="{{ url_for('unassign_cover', cover_id=row['id']) }}">
+                                                <button type="submit" class="link-button">{{ 'Change' if row['status'] == 'Covered' else 'Try again' }}</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            {% endif %}
+        </div>
+
+        <aside class="desk-side">
+            <section aria-labelledby="absent-heading" class="side-card">
+                <h2 id="absent-heading">Absent</h2>
+                {% for person in absent_staff %}
+                    <div class="absent-row">
+                        <p><strong>{{ person.display_name }}</strong></p>
+                        <p class="muted small">{{ person.reason }} · until {{ person.end_date|day }}</p>
+                        {% if person.missing %}
+                            <form method="POST" action="{{ url_for('create_cover_from_absence', absence_id=person.absence_id) }}">
+                                <input type="hidden" name="date" value="{{ shown_iso }}">
+                                <button type="submit" class="button-small">Add {{ person.missing }} lesson{{ '' if person.missing == 1 else 's' }} from timetable</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <p class="muted small">Nobody is absent.</p>
+                {% endfor %}
+            </section>
+
+            <section aria-labelledby="free-heading" class="side-card">
+                <h2 id="free-heading">Free staff</h2>
+                <p class="muted small">Not teaching, on duty, absent or already covering.</p>
+                {% for period, people in free_by_period.items() %}
+                    <details class="free-period">
+                        <summary>
+                            <span>P{{ period }} <span class="muted small">{{ periods[period][0] }}</span></span>
+                            <span class="count">{{ people|length }} free</span>
+                        </summary>
+                        {% if people %}
+                            <ul>
+                                {% for person in people %}
+                                    <li>{{ person.display_name }} <span class="muted small">{{ person.department }} · {{ person.hours_covered }}h of cover</span></li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="muted small">Nobody free.</p>
+                        {% endif %}
+                    </details>
+                {% endfor %}
+            </section>
+        </aside>
+    </div>
+</div>
+{% endblock %}

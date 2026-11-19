@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="section-page">
+    <div class="page-title">
+        <div>
+            <h1>Timetable</h1>
+            {% if teacher %}
+                <p class="muted">{{ teacher['staff_code'] }} · {{ 'Teaching' if teacher['staff_type'] == 'TEACHING' else 'Non-teaching' }} staff</p>
+            {% endif %}
+        </div>
+        {% if codes and g.user['role'] != 'teacher' %}
+            <form class="filters" method="GET">
+                <label for="staff">Staff member</label>
+                <select id="staff" name="staff" onchange="this.form.submit()">
+                    {% for code in codes %}
+                        <option value="{{ code }}" {% if code == staff_code %}selected{% endif %}>{{ code }}</option>
+                    {% endfor %}
+                </select>
+                <noscript><button type="submit">Show</button></noscript>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if teacher %}
+        <div class="table-card">
+            <table class="timetable-grid">
+                <thead>
+                    <tr>
+                        <th scope="col">Day</th>
+                        {% for number, times in periods.items() %}
+                            <th scope="col">P{{ number }}<br><span class="period-times">{{ times[0] }}–{{ times[1] }}</span></th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day in days %}
+                        <tr>
+                            <th scope="row" class="time-col">{{ day }}</th>
+                            {% for number in periods %}
+                                {% set slot = grid.get((day, 'P' ~ number)) %}
+                                {% if slot and slot.lesson %}
+                                    <td>
+                                        <strong>{{ slot.lesson['class_name'] }}</strong><br>
+                                        {{ slot.lesson['subject'] }}<br>
+                                        <span class="muted small">{{ slot.lesson['room'] }}</span>
+                                    </td>
+                                {% elif slot %}
+                                    <td class="duty-cell">{{ slot.duty }}</td>
+                                {% elif (day, 'P' ~ number) not in school_slots %}
+                                    <td class="no-lesson-cell"><span class="muted small">No lesson</span></td>
+                                {% else %}
+                                    <td class="free-cell"><span class="muted small">Free</span></td>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% elif g.user['role'] == 'teacher' %}
+        {% if g.user['staff_code'] %}
+            <p class="empty-card">Your timetable ({{ g.user['staff_code'] }}) hasn't been imported yet. It will appear here after the next timetable import.</p>
+        {% else %}
+            <p class="empty-card">Your account isn't linked to a timetable yet. Ask an admin to add your staff code.</p>
+        {% endif %}
+    {% else %}
+        <p class="muted">No timetable has been imported yet. Put <code>timetable.csv</code> in the project folder and run <code>python import_tt.py</code>.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,5 +1,137 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>Welcome to HiveMind Ed's Cover System!</h2>
-    <p>This system allows you to apply cover to classes quickly.</p>
+<div class="teacher-dashboard">
+
+    <section class="page-head">
+        <div>
+            <h1>{{ greeting }}, {{ g.user['display_name']|short_name }}</h1>
+            <p class="date">{{ today.strftime('%A') }} {{ today.day }} {{ today.strftime('%B %Y') }}</p>
+        </div>
+        <p class="summary-pill">
+            <strong>{{ my_cover|length }}</strong>
+            lesson{{ '' if my_cover|length == 1 else 's' }} to cover today
+        </p>
+    </section>
+
+    {% if g.user['role'] != 'teacher' %}
+    <section class="stats" aria-label="Today at a glance">
+        <a class="stat-card" href="{{ url_for('staff') }}">
+            <span class="stat-number">{{ stats.total_staff }}</span>
+            <span class="stat-label">Total staff members</span>
+        </a>
+        <a class="stat-card" href="{{ url_for('absences') }}">
+            <span class="stat-number">{{ stats.absent_today }}</span>
+            <span class="stat-label">Staff absent today</span>
+        </a>
+        <a class="stat-card" href="{{ url_for('cover_arrangements', when='today', status='Pending') }}">
+            <span class="stat-number">{{ stats.needs_cover }}</span>
+            <span class="stat-label">Lessons needing cover today</span>
+        </a>
+        <a class="stat-card" href="{{ url_for('cover_arrangements', when='today', status='Covered') }}">
+            <span class="stat-number">{{ stats.covered }}</span>
+            <span class="stat-label">Cover arranged today</span>
+        </a>
+    </section>
+    {% endif %}
+
+    {% if changes %}
+        <section class="changes" aria-labelledby="changes-heading">
+            <div class="section-title">
+                <h2 id="changes-heading">Since you last looked</h2>
+                <span class="count">{{ changes|length }} update{{ '' if changes|length == 1 else 's' }}</span>
+            </div>
+            <ul>
+                {% for change in changes %}
+                    <li class="change-item">
+                        <span class="tag tag-{{ change['type']|lower|replace(' ', '-') }}">{{ change['type'] }}</span>
+                        <span class="message">{{ change['message'] }}</span>
+                        <span class="when">{{ change['created_at']|time_ago }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    <div class="columns">
+
+        <section class="my-cover" aria-labelledby="cover-heading">
+            <div class="section-title">
+                <h2 id="cover-heading">My cover today</h2>
+                <span class="muted">{{ my_cover|length }} lesson{{ '' if my_cover|length == 1 else 's' }}</span>
+            </div>
+
+            {% for lesson in my_cover %}
+                <article class="lesson-card">
+                    <div class="lesson">
+                        <div class="period">
+                            <span class="period-number">P{{ lesson['period'] }}</span>
+                            <span class="period-time">{{ periods[lesson['period']][0] }} – {{ periods[lesson['period']][1] }}</span>
+                        </div>
+                        <div>
+                            <h3>{{ lesson['class_name'] }}</h3>
+                            <p class="muted">Room {{ lesson['room'] }} · Covering for {{ lesson['absent_teacher'] }}</p>
+                        </div>
+                    </div>
+                    <div class="set-work">
+                        <h4>Set work</h4>
+                        <p>{{ lesson['set_work'] }}</p>
+                        {% if lesson['attachment'] %}
+                            <span class="attachment">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                    <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                </svg>
+                                {{ lesson['attachment'] }}
+                            </span>
+                        {% endif %}
+                        {% if lesson['resources'] %}
+                            <p class="muted small">{{ lesson['resources'] }}</p>
+                        {% endif %}
+                    </div>
+                </article>
+            {% else %}
+                <p class="empty-card">You have no cover today.</p>
+            {% endfor %}
+        </section>
+
+        <section class="my-requests" aria-labelledby="requests-heading">
+            <div class="section-title spread">
+                <h2 id="requests-heading">My cover requests</h2>
+                <a class="button-small" href="{{ url_for('cover') }}">+ Request cover</a>
+            </div>
+
+            <div class="requests">
+                {% for req in my_requests %}
+                    <div class="request-row">
+                        <div>
+                            <p class="when">{{ req['lesson_date']|day }} · P{{ req['period'] }}</p>
+                            <p class="muted small">{{ req['class_name'] }} · Room {{ req['room'] }}</p>
+                            <p class="muted small">
+                                {% if req['status'] == 'Covered' %}
+                                    Covered by {{ req['cover_teacher'] }}
+                                {% elif req['status'] == 'Declined' %}
+                                    No staff free. Contact the cover office.
+                                {% else %}
+                                    Waiting for a cover teacher
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="request-actions">
+                            <span class="badge badge-{{ req['status']|lower }}">{{ req['status'] }}</span>
+                            {% if req['status'] in ('Pending', 'Covered') %}
+                                <form method="POST" action="{{ url_for('cancel_cover', cover_id=req['id']) }}"
+                                      onsubmit='return confirm({{ ("Cancel cover for " ~ req["class_name"] ~ ", period " ~ req["period"] ~ "?")|tojson }});'>
+                                    <button type="submit" class="link-button">Cancel</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="muted small empty-row">You have no upcoming cover requests.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+    </div>
+</div>
 {% endblock %}

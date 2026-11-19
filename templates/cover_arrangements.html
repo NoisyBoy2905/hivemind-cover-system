@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="section-page">
+    <div class="page-title">
+        <div>
+            <h1>{{ 'Cover' if g.user['role'] == 'teacher' else 'Cover Arrangements' }}</h1>
+            <p class="muted">{{ arrangements|length }} lesson{{ '' if arrangements|length == 1 else 's' }} shown</p>
+        </div>
+        <a class="button-small" href="{{ url_for('cover') }}">+ Request cover</a>
+    </div>
+
+    <form class="filters" method="GET">
+        <label for="when">Show</label>
+        <select id="when" name="when">
+            {% for value, label in [('today', 'Today'), ('upcoming', 'Today and upcoming'), ('past', 'Past')] %}
+                <option value="{{ value }}" {% if value == when %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            <option value="">All statuses</option>
+            {% for name in statuses %}
+                <option value="{{ name }}" {% if name == status %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+
+    {% if arrangements %}
+        <div class="table-card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Period</th>
+                        <th scope="col">Class</th>
+                        <th scope="col">Room</th>
+                        <th scope="col">Absent teacher</th>
+                        <th scope="col">Covered by</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in arrangements %}
+                        <tr>
+                            <td>{{ row['lesson_date']|day }}</td>
+                            <td>P{{ row['period'] }} <span class="muted small">{{ periods[row['period']][0] }}</span></td>
+                            <td>{{ row['class_name'] }}</td>
+                            <td>{{ row['room'] }}</td>
+                            <td>{{ row['absent_teacher'] }}</td>
+                            <td>{{ row['cover_teacher'] or '—' }}</td>
+                            <td><span class="badge badge-{{ row['status']|lower }}">{{ row['status'] }}</span></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty-card">No cover arrangements match these filters.</p>
+    {% endif %}
+</div>
+{% endblock %}

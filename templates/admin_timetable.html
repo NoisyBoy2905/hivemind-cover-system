@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="section-page">
+    <div class="page-title">
+        <div>
+            <h1>Upload timetable</h1>
+            <p class="muted">Replace the timetable with a new staff timetable export</p>
+        </div>
+        <a class="button-small button-light" href="{{ url_for('admin') }}">← Back to accounts</a>
+    </div>
+
+    <section class="stats" aria-label="Current timetable">
+        <div class="stat-card">
+            <span class="stat-number">{{ summary.lessons }}</span>
+            <span class="stat-label">Lessons</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ summary.duties }}</span>
+            <span class="stat-label">Duties</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ summary.staff }}</span>
+            <span class="stat-label">Staff codes</span>
+        </div>
+    </section>
+
+    <div class="columns">
+        <section class="side-card" aria-labelledby="upload-heading">
+            <h2 id="upload-heading">Upload a new timetable</h2>
+            <ol class="steps">
+                <li>Open the staff timetable export in Excel.</li>
+                <li>Choose <strong>File › Save As › CSV UTF-8</strong>.</li>
+                <li>Upload it here. It replaces the whole timetable.</li>
+            </ol>
+            {% if error %}
+                <p class="form-error" role="alert">{{ error }}</p>
+            {% endif %}
+            <form method="POST" enctype="multipart/form-data" class="upload-form">
+                <label for="timetable">Timetable CSV file:</label>
+                <input type="file" id="timetable" name="timetable" accept=".csv,text/csv" required>
+                <button type="submit">Upload and import</button>
+            </form>
+            <p class="muted small">If something in the file is wrong, nothing is changed and you'll see what to fix. Cover requests and absences aren't affected.</p>
+        </section>
+
+        <aside class="desk-side">
+            <section class="side-card" aria-labelledby="waiting-heading">
+                <h2 id="waiting-heading">Waiting for the timetable</h2>
+                <p class="muted small">Accounts with a staff code that isn't in the timetable yet. They'll link up when a timetable with their code is uploaded.</p>
+                {% for person in waiting %}
+                    <p class="list-row">{{ person['display_name'] }} <span class="muted small">{{ person['staff_code'] }}</span></p>
+                {% else %}
+                    <p class="muted small">None. Every staff code is in the timetable.</p>
+                {% endfor %}
+            </section>
+
+            <section class="side-card" aria-labelledby="nocode-heading">
+                <h2 id="nocode-heading">No staff code</h2>
+                <p class="muted small">These accounts can't show a timetable or be suggested for cover until they have a staff code.</p>
+                {% for person in no_code %}
+                    <p class="list-row">{{ person['display_name'] }}</p>
+                {% else %}
+                    <p class="muted small">None.</p>
+                {% endfor %}
+            </section>
+        </aside>
+    </div>
+</div>
+{% endblock %}

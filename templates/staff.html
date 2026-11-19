@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="section-page">
+    <div class="page-title">
+        <div>
+            <h1>Staff</h1>
+            <p class="muted">{{ staff_list|length }} staff shown · {{ absent_count }} absent today</p>
+        </div>
+        <form class="filters" method="GET">
+            <label for="department">Department</label>
+            <select id="department" name="department" onchange="this.form.submit()">
+                <option value="">All departments</option>
+                {% for name in departments %}
+                    <option value="{{ name }}" {% if name == department %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+            <noscript><button type="submit">Filter</button></noscript>
+        </form>
+    </div>
+
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Department</th>
+                    <th scope="col">Today</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for person in staff_list %}
+                    <tr>
+                        <td>
+                            <span class="name-cell">
+                                <span class="avatar small-avatar" aria-hidden="true">{{ person['display_name']|initials }}</span>
+                                {{ person['display_name'] }}
+                            </span>
+                        </td>
+                        <td>{{ person['department'] }}</td>
+                        <td>
+                            {% if person['absence_reason'] %}
+                                <span class="badge badge-declined">Absent</span>
+                                <span class="muted small">{{ person['absence_reason'] }} · until {{ person['back_after']|day }}</span>
+                            {% else %}
+                                <span class="badge badge-covered">In school</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
